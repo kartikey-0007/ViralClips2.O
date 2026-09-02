@@ -1,0 +1,27 @@
+const API = localStorage.getItem('viralclip_api') || 'YOUR_BACKEND_URL';
+const $=id=>document.getElementById(id);
+let selectedFile=null, uploadId=null, pollTimer=null;
+const setStatus=t=>$('status').textContent=t||'';
+const setProgress=n=>{ $('progressWrap').classList.toggle('hidden',n<=0||n>=100); $('progressBar').style.width=Math.max(0,Math.min(100,n))+'%'; };
+function apiReady(){return API && API!=='YOUR_BACKEND_URL' && /^https?:\/\//.test(API)}
+function fmtBytes(n){const u=['B','KB','MB','GB'];let i=0;while(n>=1024&&i<3){n/=1024;i++}return n.toFixed(i?1:0)+' '+u[i]}
+function fmtTime(s){s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`}
+function tabs(){document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tabpane').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.tab+'Tab').classList.add('active')})}
+tabs();
+$('mode').onchange=()=> $('manualBox').classList.toggle('hidden',$('mode').value!=='manual');
+$('dropZone').addEventListener('dragover',e=>e.preventDefault());
+$('dropZone').addEventListener('drop',e=>{e.preventDefault(); if(e.dataTransfer.files[0]) chooseFile(e.dataTransfer.files[0])});
+$('fileInput').onchange=e=>e.target.files[0]&&chooseFile(e.target.files[0]);
+function chooseFile(f){if(!f.type.startsWith('video/')) return setStatus('Please choose a video file.');selectedFile=f; $('fileLabel').textContent=f.name; $('fileMeta').classList.remove('hidden'); $('fileMeta').textContent=`${f.name} • ${fmtBytes(f.size)}`; $('generateBtn').disabled=!apiReady(); if(!apiReady()) setStatus('Backend URL not configured yet. Follow the setup steps in README.'); else setStatus('Video selected. Ready to generate.');}
+$('youtubePreview').onclick=()=>{const u=$('youtubeUrl').value.trim();const m=u.match(/(?:v=|youtu\.be\/|shorts\/)([A-Za-z0-9_-]{11})/);if(!m)return $('ytMessage').textContent='Please paste a valid YouTube URL.';$('ytEmbed').classList.remove('hidden');$('ytEmbed').innerHTML=`<iframe src="https://www.youtube.com/embed/${m[1]}" title="YouTube preview" allowfullscreen></iframe>`};
+$('generateBtn').onclick=async()=>{if(!selectedFile||!apiReady())return;try{await startUpload()}catch(e){console.error(e);setStatus(e.message||'Something went wrong.')}};
+async function startUpload(){ $('generateBtn').disabled=true; $('results').classList.add('hidden'); setProgress(1);setStatus('Starting secure chunked upload…');
+  const r=await fetch(API+'/api/upload/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:selectedFile.name,size:selectedFile.size,content_type:selectedFile.type})}); if(!r.ok)throw new Error(await r.text()); const s=await r.json(); uploadId=s.upload_id; const chunk=s.chunk_size||8*1024*1024; let sent=0;
+  while(sent<selectedFile.size){const end=Math.min(sent+chunk,selectedFile.size);const body=selectedFile.slice(sent,end);const rr=await fetch(API+'/api/upload/chunk/'+uploadId,{method:'POST',headers:{'Content-Range':`bytes ${sent}-${end-1}/${selectedFile.size}`},body});if(!rr.ok)throw new Error('Chunk upload failed: '+await rr.text());sent=end;setProgress(5+sent/selectedFile.size*65);setStatus(`Uploading… ${Math.round(sent/selectedFile.size*100)}%`)}
+  const fin=await fetch(API+'/api/upload/finish/'+uploadId,{method:'POST'});if(!fin.ok)throw new Error(await fin.text());
+  const payload={upload_id:uploadId,clip_length:Number($('clipLength').value),clip_count:Number($('clipCount').value),aspect:$('aspect').value,mode:$('mode').value,manual_times:$('manualTimes').value,auto_title:$('autoTitle').checked,keep_audio:$('keepAudio').checked};
+  const jr=await fetch(API+'/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!jr.ok)throw new Error(await jr.text());const job=await jr.json();setProgress(75);setStatus('Video uploaded. Processing clips on the server…');poll(job.job_id)}
+async function poll(id){clearTimeout(pollTimer);const r=await fetch(API+'/api/jobs/'+id);if(!r.ok)throw new Error(await r.text());const j=await r.json();setProgress(j.progress||75);setStatus(j.message||'Processing…');if(j.status==='done'){setProgress(100);setStatus('Done — your clips are ready.');renderResults(j.outputs||[]);$('generateBtn').disabled=false;return}if(j.status==='error'){setProgress(0);setStatus('Error: '+j.error);$('generateBtn').disabled=false;return}pollTimer=setTimeout(()=>poll(id),1500)}
+function renderResults(items){$('results').classList.remove('hidden');const g=$('clipGrid');g.innerHTML='';items.forEach((x,i)=>{const d=document.createElement('article');d.className='clip';d.innerHTML=`<video controls playsinline preload="metadata" src="${API+x.url}"></video><div class="clipBody"><div class="clipTitle">${escapeHtml(x.title||'Clip '+(i+1))}</div><div class="clipMeta">${fmtTime(x.start)} → ${fmtTime(x.end)} • ${x.score||'Smart'}</div><div class="actions"><a class="secondary" href="${API+x.url}" target="_blank">Open</a><a class="primary" href="${API+x.url}" download>Download</a></div></div>`;g.appendChild(d)});$('results').scrollIntoView({behavior:'smooth'})}
+function escapeHtml(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+$('clearBtn').onclick=()=>location.reload();

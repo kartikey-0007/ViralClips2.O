@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090b12">
+  <title>ViralClip AI — Long Video to Shorts</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span>⚡</span> ViralClip <b>AI</b></div>
+  <div class="badge">LONG VIDEO → SHORTS</div>
+</header>
+<main>
+  <section class="hero">
+    <p class="eyebrow">OPUS-STYLE WORKFLOW</p>
+    <h1>Turn long videos into <span>viral-ready clips.</span></h1>
+    <p class="sub">Upload a 30–60 minute video, choose your format and let the server create short clips with smart moment selection.</p>
+  </section>
+
+  <section class="card">
+    <div class="tabs">
+      <button class="tab active" data-tab="upload">Upload video</button>
+      <button class="tab" data-tab="youtube">YouTube link</button>
+    </div>
+
+    <div id="uploadTab" class="tabpane active">
+      <label class="drop" id="dropZone">
+        <input id="fileInput" type="file" accept="video/mp4,video/quicktime,video/webm,video/x-matroska,video/*">
+        <div class="dropicon">⬆</div>
+        <strong id="fileLabel">Choose a video</strong>
+        <span>MP4, MOV, WebM, MKV • large files supported with chunked upload</span>
+      </label>
+      <div id="fileMeta" class="filemeta hidden"></div>
+    </div>
+
+    <div id="youtubeTab" class="tabpane">
+      <div class="row">
+        <input id="youtubeUrl" class="input" placeholder="Paste a YouTube URL…">
+        <button id="youtubePreview" class="secondary">Preview</button>
+      </div>
+      <div id="ytMessage" class="notice">For clipping, upload the original video file you own or are authorized to use. This app does not download audiovisual files from YouTube.</div>
+      <div id="ytEmbed" class="embed hidden"></div>
+    </div>
+
+    <div class="settings">
+      <div><label>Clip length</label><select id="clipLength"><option value="15">15 sec</option><option value="30" selected>30 sec</option><option value="45">45 sec</option><option value="60">60 sec</option></select></div>
+      <div><label>Number of clips</label><select id="clipCount"><option>3</option><option selected>5</option><option>7</option><option>10</option></select></div>
+      <div><label>Format</label><select id="aspect"><option value="9:16" selected>9:16 Shorts</option><option value="1:1">1:1 Square</option><option value="16:9">16:9 Landscape</option></select></div>
+      <div><label>Selection</label><select id="mode"><option value="smart" selected>Smart moments</option><option value="even">Evenly spaced</option><option value="manual">Manual timestamps</option></select></div>
+    </div>
+
+    <div id="manualBox" class="manual hidden">
+      <label>Manual timestamps (one per line: start,end)</label>
+      <textarea id="manualTimes" placeholder="00:01:20,00:01:50&#10;00:05:10,00:05:40"></textarea>
+    </div>
+
+    <div class="checks">
+      <label><input id="autoTitle" type="checkbox" checked> Add clip title card</label>
+      <label><input id="keepAudio" type="checkbox" checked> Keep original audio</label>
+    </div>
+
+    <button id="generateBtn" class="primary" disabled>Generate clips</button>
+    <div id="status" class="status"></div>
+    <div id="progressWrap" class="progress hidden"><div id="progressBar"></div></div>
+  </section>
+
+  <section id="results" class="results hidden">
+    <div class="resultsHead"><div><p class="eyebrow">RESULTS</p><h2>Your clips</h2></div><button id="clearBtn" class="secondary">New project</button></div>
+    <div id="clipGrid" class="grid"></div>
+  </section>
+
+  <section class="info">
+    <div><b>✓ 30–60 min input</b><span>Chunked upload designed for large videos.</span></div>
+    <div><b>✓ Server FFmpeg</b><span>No SharedArrayBuffer or browser FFmpeg dependency.</span></div>
+    <div><b>✓ Mobile friendly</b><span>Works from Android Chrome with a hosted backend.</span></div>
+  </section>
+
+  <p class="disclaimer">ViralClip AI is an independent project and is not affiliated with OpusClip. Upload only videos you have permission to process.</p>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
